@@ -393,7 +393,7 @@ const lineEls=[];
       if(+s.dataset.i!==entropy.lit||entropy.full)return;
       s.classList.add("lit");s.classList.remove("next");
       entropy.lit++;
-      if(entropy.lit>1)lineEls[entropy.lit-2].classList.add("lit-line");
+      if(entropy.lit<7)lineEls[entropy.lit-1].classList.add("lit-line");
       document.getElementById("entropy-fill").style.width=(entropy.lit/7*100)+"%";
       if(entropy.lit<7){
         starEls[entropy.lit].classList.add("next");
