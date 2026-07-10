@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>雷诺曼秘仪 · Lenormand Oracle</title>
+<style>
+  :root{
+    --bg-deep:#0b0817;
+    --bg-mid:#161028;
+    --gold:#d4af37;
+    --gold-dim:#8a7328;
+    --ink:#e8e0cc;
+    --ink-dim:#9a8fb0;
+    --card-back:#1e1440;
+    --accent:#7b5cff;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    font-family:"Songti SC","STSong","Noto Serif SC",serif;
+    background:radial-gradient(ellipse at 50% -10%, #241645 0%, var(--bg-mid) 45%, var(--bg-deep) 100%);
+    min-height:100vh;
+    color:var(--ink);
+    overflow-x:hidden;
+  }
+  #starfield{position:fixed;inset:0;pointer-events:none;z-index:0;}
+  .star{position:absolute;border-radius:50%;background:#fff;animation:twinkle 3s ease-in-out infinite;}
+  @keyframes twinkle{0%,100%{opacity:.15}50%{opacity:.9}}
+  main{position:relative;z-index:1;max-width:860px;margin:0 auto;padding:36px 24px 80px;}
+
+  header{text-align:center;margin-bottom:28px;}
+  h1{
+    font-size:34px;letter-spacing:10px;color:var(--gold);font-weight:600;
+    text-shadow:0 0 24px rgba(212,175,55,.35);
+  }
+  .subtitle{font-size:13px;letter-spacing:4px;color:var(--ink-dim);margin-top:6px;}
+  .celestial{
+    margin-top:16px;display:flex;justify-content:center;gap:22px;flex-wrap:wrap;
+    font-size:13px;color:var(--ink-dim);letter-spacing:1px;
+  }
+  .celestial span b{color:var(--gold);font-weight:normal;}
+
+  .panel{
+    background:rgba(20,13,40,.72);
+    border:1px solid rgba(212,175,55,.22);
+    border-radius:14px;
+    padding:26px 28px;
+    margin-bottom:22px;
+    backdrop-filter:blur(4px);
+    transition:opacity .5s, transform .5s;
+  }
+  .panel.locked{opacity:.28;pointer-events:none;filter:grayscale(.6);}
+  .panel h2{
+    font-size:16px;color:var(--gold);letter-spacing:3px;font-weight:600;margin-bottom:14px;
+    display:flex;align-items:center;gap:10px;
+  }
+  .panel h2::after{content:"";flex:1;height:1px;background:linear-gradient(90deg,rgba(212,175,55,.4),transparent);}
+  .hint{font-size:12.5px;color:var(--ink-dim);line-height:1.7;margin-bottom:12px;}
+
+  textarea#question{
+    width:100%;min-height:72px;resize:vertical;
+    background:rgba(0,0,0,.35);border:1px solid rgba(212,175,55,.3);border-radius:8px;
+    color:var(--ink);font-family:inherit;font-size:15px;line-height:1.7;padding:12px 14px;
+    outline:none;
+  }
+  textarea#question:focus{border-color:var(--gold);box-shadow:0 0 12px rgba(212,175,55,.2);}
+
+  .spread-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;}
+  .spread-opt{
+    border:1px solid rgba(212,175,55,.25);border-radius:10px;padding:14px;cursor:pointer;
+    background:rgba(0,0,0,.25);transition:all .25s;text-align:center;
+  }
+  .spread-opt:hover{border-color:var(--gold);transform:translateY(-2px);}
+  .spread-opt.selected{border-color:var(--gold);background:rgba(212,175,55,.12);box-shadow:0 0 16px rgba(212,175,55,.25);}
+  .spread-opt .s-name{font-size:15px;color:var(--ink);letter-spacing:2px;}
+  .spread-opt .s-glyph{font-size:20px;color:var(--gold);margin:6px 0;letter-spacing:3px;}
+  .spread-opt .s-desc{font-size:11.5px;color:var(--ink-dim);line-height:1.6;margin-top:4px;}
+
+  .entropy-zone{
+    border:1px dashed rgba(123,92,255,.45);border-radius:10px;padding:18px;text-align:center;
+    background:rgba(123,92,255,.05);margin-bottom:16px;cursor:crosshair;user-select:none;
+  }
+  .entropy-zone.full{border-color:var(--gold);background:rgba(212,175,55,.07);}
+  .entropy-label{font-size:13px;color:var(--ink-dim);letter-spacing:2px;margin-bottom:10px;}
+  .entropy-bar{
+    height:8px;border-radius:4px;background:rgba(0,0,0,.4);overflow:hidden;max-width:420px;margin:0 auto;
+  }
+  .entropy-fill{
+    height:100%;width:0%;border-radius:4px;transition:width .15s;
+    background:linear-gradient(90deg,var(--accent),var(--gold));
+  }
+  .deck-visual{font-size:34px;margin:10px 0;display:inline-block;}
+  .deck-visual.shuffling{animation:shake .5s ease-in-out infinite;}
+  @keyframes shake{0%,100%{transform:rotate(-4deg)}50%{transform:rotate(4deg)}}
+
+  .btn{
+    display:inline-block;border:1px solid var(--gold);background:transparent;color:var(--gold);
+    font-family:inherit;font-size:15px;letter-spacing:4px;padding:12px 34px;border-radius:30px;
+    cursor:pointer;transition:all .3s;user-select:none;-webkit-user-select:none;
+  }
+  .btn:hover:not(:disabled){background:rgba(212,175,55,.15);box-shadow:0 0 18px rgba(212,175,55,.35);}
+  .btn:disabled{opacity:.3;cursor:not-allowed;}
+  .btn.holding{background:rgba(212,175,55,.25);box-shadow:0 0 30px rgba(212,175,55,.6);transform:scale(1.04);}
+  .btn-row{text-align:center;margin-top:14px;}
+  .hold-progress{
+    max-width:220px;height:4px;margin:10px auto 0;border-radius:2px;background:rgba(0,0,0,.4);overflow:hidden;
+  }
+  .hold-fill{height:100%;width:0%;background:var(--gold);}
+
+  .cards-area{display:grid;gap:14px;justify-content:center;margin:10px 0 18px;}
+  .cards-area.n1{grid-template-columns:repeat(1,130px);}
+  .cards-area.n3{grid-template-columns:repeat(3,130px);}
+  .cards-area.n5{grid-template-columns:repeat(5,minmax(96px,130px));}
+  .cards-area.n9{grid-template-columns:repeat(3,minmax(110px,150px));}
+  @media (max-width:700px){
+    .cards-area.n5{grid-template-columns:repeat(3,minmax(96px,1fr));}
+    .cards-area.n3,.cards-area.n9{grid-template-columns:repeat(3,minmax(90px,1fr));}
+  }
+  .cardslot{perspective:800px;}
+  .pos-label{font-size:11px;color:var(--ink-dim);text-align:center;margin-bottom:5px;letter-spacing:1px;min-height:15px;}
+  .card{
+    position:relative;width:100%;aspect-ratio:2/3.1;transform-style:preserve-3d;
+    transition:transform .8s cubic-bezier(.4,.1,.2,1);
+  }
+  .card.flipped{transform:rotateY(180deg);}
+  .card-face{
+    position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;
+    border-radius:9px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  }
+  .card-back{
+    background:
+      radial-gradient(circle at 50% 50%, rgba(212,175,55,.18) 0%, transparent 60%),
+      repeating-linear-gradient(45deg, var(--card-back) 0 8px, #241a52 8px 16px);
+    border:1px solid rgba(212,175,55,.4);
+    color:var(--gold);font-size:26px;
+  }
+  .card-front{
+    transform:rotateY(180deg);
+    background:linear-gradient(160deg,#f5eeda 0%,#e9ddbc 100%);
+    border:1px solid var(--gold);color:#2a2118;padding:6px;
+    box-shadow:0 0 18px rgba(212,175,55,.3);
+  }
+  .card-front .c-num{font-size:11px;color:#8a7328;letter-spacing:1px;}
+  .card-front .c-emoji{font-size:34px;margin:6px 0;}
+  .card-front .c-name{font-size:15px;font-weight:700;letter-spacing:2px;}
+  .card-front .c-en{font-size:10px;color:#6b5d3f;margin-top:2px;font-style:italic;}
+  .card-front .c-poker{font-size:10px;color:#8a7328;margin-top:5px;}
+  .card-front .c-poker .red{color:#b03030;}
+
+  .altar{
+    display:flex;gap:16px;align-items:center;margin-top:20px;padding:13px 16px;
+    border:1px solid rgba(212,175,55,.18);border-radius:10px;background:rgba(0,0,0,.25);
+  }
+  .altar img{
+    width:118px;height:80px;object-fit:cover;border-radius:6px;flex-shrink:0;
+    border:1px solid rgba(212,175,55,.45);filter:sepia(.25) brightness(.88);
+  }
+  .altar-text{font-size:11.5px;color:var(--ink-dim);line-height:1.9;letter-spacing:.5px;}
+  .altar-text i{color:var(--gold);font-style:italic;}
+  .ritual-report{
+    font-size:11.5px;color:var(--ink-dim);line-height:1.9;text-align:center;
+    border-top:1px solid rgba(212,175,55,.15);padding-top:12px;margin-top:6px;letter-spacing:.5px;
+  }
+  .prompt-box{
+    width:100%;min-height:180px;max-height:320px;resize:vertical;margin-top:14px;
+    background:rgba(0,0,0,.4);border:1px solid rgba(212,175,55,.25);border-radius:8px;
+    color:#c9c0a8;font-family:"SF Mono",Menlo,monospace;font-size:12px;line-height:1.7;padding:12px 14px;
+    white-space:pre-wrap;overflow-y:auto;
+  }
+  .copy-ok{color:var(--gold);font-size:13px;letter-spacing:2px;margin-left:14px;opacity:0;transition:opacity .3s;}
+  .copy-ok.show{opacity:1;}
+  footer{text-align:center;font-size:11px;color:rgba(154,143,176,.5);letter-spacing:2px;margin-top:30px;}
+</style>
+</head>
+<body>
+<div id="starfield"></div>
+<main>
+  <header>
+    <h1>雷 诺 曼 秘 仪</h1>
+    <div class="subtitle">LENORMAND ORACLE · 三十六张小神谕</div>
+    <div class="celestial" id="celestial"></div>
+  </header>
+
+  <!-- 第一步：问题 -->
+  <section class="panel" id="panel-question">
+    <h2>壹 · 默念你的问题</h2>
+    <p class="hint">问题越具体，牌的回答越清晰。雷诺曼擅长具体事务：某件事的走向、某个人的态度、某个选择的结果。写下它，抽牌前请在心中默念三遍。</p>
+    <textarea id="question" placeholder="例：我的公众号这个月的新方向，会有好的反响吗？"></textarea>
+  </section>
+
+  <!-- 第二步：牌阵 -->
+  <section class="panel" id="panel-spread">
+    <h2>贰 · 选择牌阵</h2>
+    <div class="spread-grid" id="spread-grid"></div>
+  </section>
+
+  <!-- 第三步：仪式 -->
+  <section class="panel locked" id="panel-ritual">
+    <h2>叁 · 洗牌仪式</h2>
+    <div class="entropy-zone" id="entropy-zone">
+      <div class="deck-visual" id="deck-visual">🂠</div>
+      <div class="entropy-label" id="entropy-label">在此区域内缓慢画圈移动鼠标 —— 你的手迹将成为洗牌的随机之源</div>
+      <div class="entropy-bar"><div class="entropy-fill" id="entropy-fill"></div></div>
+    </div>
+    <p class="hint" style="text-align:center">能量注满后，<b style="color:var(--gold)">按住</b>下方按钮闭眼凝神默念问题，感觉到了再松手 —— 松手的一瞬即是切牌的一瞬。</p>
+    <div class="btn-row">
+      <button class="btn" id="draw-btn" disabled>凝 神 抽 牌</button>
+      <div class="hold-progress"><div class="hold-fill" id="hold-fill"></div></div>
+    </div>
+    <div class="altar">
+      <img src="牌灵之墓.jpg" alt="Mlle Lenormand 之墓" onerror="this.style.display='none'">
+      <div class="altar-text">
+        牌灵 · Mlle Marie-Anne Lenormand（1772–1843），雷诺曼牌以她为名。<br>
+        长眠于巴黎拉雪兹神父公墓第 3 墓区，一百八十年来墓前四时有花。<br>
+        <i>« Cri de l'honneur »</i> —— 她 1821 年的著作，本阵以此为封印语，已织入每一次切牌。<br>
+        <span style="opacity:.55">墓照：Pierre-Yves Beaudouin / Wikimedia Commons / CC BY-SA 4.0</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 第四步：结果 -->
+  <section class="panel" id="panel-result" style="display:none">
+    <h2>肆 · 牌已开示</h2>
+    <div class="cards-area" id="cards-area"></div>
+    <div class="ritual-report" id="ritual-report"></div>
+    <div class="ritual-report" id="save-status" style="border-top:none;padding-top:4px"></div>
+    <div class="btn-row">
+      <button class="btn" id="copy-btn">复制占卜全文 · 去问 AI</button>
+      <button class="btn" id="dl-btn" style="font-size:13px;padding:9px 26px;margin-left:10px">下载本次 txt</button>
+      <span class="copy-ok" id="copy-ok">✦ 已复制</span>
+    </div>
+    <div class="prompt-box" id="prompt-box"></div>
+    <div class="btn-row">
+      <button class="btn" id="reset-btn" style="font-size:13px;padding:9px 26px;opacity:.75">再 占 一 次</button>
+    </div>
+  </section>
+
+  <footer>
+    心诚则灵 · 同一问题一日只问一次<br>
+    本页不收集、不上传任何数据，一切占卜只存在你自己的浏览器里 · <a href="#" id="export-all" style="color:var(--gold-dim)">导出全部占卜历史</a><br>
+    占卜结果仅供娱乐与自省，不构成医疗、法律、投资建议
+  </footer>
+</main>
+
+<script>
+"use strict";
+/* ========== 三十六张雷诺曼 ========== */
+const CARDS=[
+[1,"骑士","The Rider","🐎","♥9","消息、来访、行动、新事物正在路上","中偏吉"],
+[2,"三叶草","The Clover","🍀","♦6","小幸运、机会、短暂的好运","吉"],
+[3,"船","The Ship","⛵","♠10","远行、远方、贸易、渐行渐远","中"],
+[4,"房子","The House","🏠","♥K","家庭、稳定、房产、安全感","吉"],
+[5,"树","The Tree","🌳","♥7","健康、成长、缓慢、深厚根基","中"],
+[6,"乌云","The Clouds","☁️","♣K","困惑、不确定、暂时的麻烦","凶"],
+[7,"蛇","The Snake","🐍","♣Q","复杂、欲望、迂回、需提防之人","凶"],
+[8,"棺材","The Coffin","⚰️","♦9","结束、停滞、告一段落、转化","凶"],
+[9,"花束","The Bouquet","💐","♠Q","礼物、邀请、喜悦、被欣赏","吉"],
+[10,"镰刀","The Scythe","🔪","♦J","突然切断、决断、收割、危险","凶"],
+[11,"鞭子","The Whip","⚡","♣J","冲突、争执、重复发生、激烈","凶"],
+[12,"鸟","The Birds","🐦","♦7","交谈、八卦、焦虑、成双成对","中偏凶"],
+[13,"孩子","The Child","👶","♠J","新开始、天真、幼小、孩子","中偏吉"],
+[14,"狐狸","The Fox","🦊","♣9","谨慎、机巧、日常工作、防欺瞒","凶"],
+[15,"熊","The Bear","🐻","♣10","力量、财务、上位者、保护或压制","中"],
+[16,"星星","The Stars","✨","♥6","希望、指引、声望、灵感","吉"],
+[17,"鹳鸟","The Stork","🦢","♥Q","改变、迁移、晋升、回归","中偏吉"],
+[18,"狗","The Dog","🐕","♥10","朋友、忠诚、可信赖的人","吉"],
+[19,"高塔","The Tower","🗼","♠6","权威、机构、孤独、过往","中"],
+[20,"花园","The Garden","⛲","♠8","社交、公众、聚会、人群","中偏吉"],
+[21,"高山","The Mountain","⛰️","♣8","阻碍、延迟、沉重的困难","凶"],
+[22,"岔路","The Crossroads","🛤️","♦Q","选择、多个选项、分岔口","中"],
+[23,"老鼠","The Mice","🐭","♣7","损耗、流失、焦虑、逐渐减少","凶"],
+[24,"心","The Heart","❤️","♥J","爱情、感情、热忱","吉"],
+[25,"戒指","The Ring","💍","♣A","承诺、契约、婚姻、循环","中偏吉"],
+[26,"书","The Book","📖","♦10","秘密、知识、学习、尚未揭晓","中"],
+[27,"信","The Letter","✉️","♠7","文书、书面消息、证书","中"],
+[28,"男人","The Man","👨","♥A","男性当事人或重要男性","中"],
+[29,"女人","The Woman","👩","♠A","女性当事人或重要女性","中"],
+[30,"百合","The Lily","⚜️","♠K","成熟、平静、长者、岁月静好","中偏吉"],
+[31,"太阳","The Sun","☀️","♦A","成功、能量、胜利、光明","大吉"],
+[32,"月亮","The Moon","🌙","♥8","声誉、情绪、直觉、浪漫","吉"],
+[33,"钥匙","The Key","🗝️","♦8","确定、解答、开启、命中注定","大吉"],
+[34,"鱼","The Fish","🐟","♦K","金钱、生意、流动、丰盛","吉"],
+[35,"锚","The Anchor","⚓","♠9","稳定、事业、长久、抵达","吉"],
+[36,"十字架","The Cross","✝️","♣6","负担、考验、命运的功课","凶"]
+];
+
+const SPREADS={
+  one:{n:1,name:"单张指引",glyph:"▪",desc:"一事一问，直取核心答案",
+    pos:["核心答案"],
+    guide:"这是单张牌占卜：请围绕这张牌的核心意涵，结合问题语境给出直接明确的回答，并说明它落在此问题上的具体指向。"},
+  three:{n:3,name:"三张牌阵",glyph:"▪ ▪ ▪",desc:"经典短阵：脉络、核心、走向",
+    pos:["位置一 · 缘起/背景","位置二 · 核心/现状","位置三 · 走向/结果"],
+    guide:"这是三张线性牌阵：中间牌为核心主题，左牌为背景与来由，右牌为发展与结局。请先两两组合（1+2、2+3）解读，再把三张牌从左到右连读成一句完整的话，最后给出结论。"},
+  five:{n:5,name:"五张牌阵",glyph:"▪ ▪ ▪ ▪ ▪",desc:"一条完整的叙事线，细看因果",
+    pos:["位置一 · 远因","位置二 · 近因","位置三 · 核心","位置四 · 近期发展","位置五 · 最终走向"],
+    guide:"这是五张线性牌阵：正中第三张为核心主题牌，左侧两张为远因与近因，右侧两张为近期发展与最终走向。请以核心牌为轴，相邻牌两两组合逐步推进解读，再整体连读成一段完整叙事，最后给出结论与时间感。"},
+  nine:{n:9,name:"九宫格",glyph:"▪▪▪%0A▪▪▪%0A▪▪▪",desc:"3×3 全景深读，大事用它",
+    pos:["左上","上中","右上","左中","中心 · 主题牌","右中","左下","下中","右下"],
+    guide:"这是 3×3 九宫格牌阵，请按雷诺曼九宫格的完整技法解读：\n   - 中心牌为全局主题，一切围绕它展开；\n   - 三行：上排为当事人的所思所想与外来影响，中排为现实主线，下排为潜藏的根基与暗流；\n   - 三列：左列为过去成因，中列为当下，右列为未来走向；\n   - 两条对角线为命运的暗线；四角牌框定全局基调；\n   - 请做镜像对照（左上↔右下、右上↔左下、上中↔下中、左中↔右中）；\n   - 逐层解读后，务必收束为一段完整结论。"}
+};
+
+/* ========== 星空 ========== */
+(function stars(){
+  const sf=document.getElementById("starfield");
+  for(let i=0;i<70;i++){
+    const s=document.createElement("div");
+    s.className="star";
+    const size=Math.random()*2+0.5;
+    s.style.cssText="width:"+size+"px;height:"+size+"px;left:"+(Math.random()*100)+"%;top:"+(Math.random()*100)+"%;animation-delay:"+(Math.random()*3)+"s;animation-duration:"+(2+Math.random()*4)+"s;";
+    sf.appendChild(s);
+  }
+})();
+
+/* ========== 天时：月相 & 时辰 ========== */
+function moonInfo(d){
+  const SYNODIC=29.53058867;
+  const knownNewMoon=Date.UTC(2000,0,6,18,14)/86400000;
+  const days=d.getTime()/86400000-knownNewMoon;
+  const age=((days%SYNODIC)+SYNODIC)%SYNODIC;
+  const idx=Math.floor(age/SYNODIC*8+0.5)%8;
+  const names=["新月","娥眉月","上弦月","盈凸月","满月","亏凸月","下弦月","残月"];
+  const icons=["🌑","🌒","🌓","🌔","🌕","🌖","🌗","🌘"];
+  const illum=Math.round((1-Math.cos(age/SYNODIC*2*Math.PI))/2*100);
+  return{name:names[idx],icon:icons[idx],age:age.toFixed(1),illum:illum};
+}
+function shichen(d){
+  const names=["子","丑","寅","卯","辰","巳","午","未","申","酉","戌","亥"];
+  return names[Math.floor(((d.getHours()+1)%24)/2)]+"时";
+}
+function timeString(d){
+  const wd=["日","一","二","三","四","五","六"][d.getDay()];
+  const p=n=>String(n).padStart(2,"0");
+  return d.getFullYear()+"年"+(d.getMonth()+1)+"月"+d.getDate()+"日 星期"+wd+" "+p(d.getHours())+":"+p(d.getMinutes())+" · "+shichen(d);
+}
+(function celestial(){
+  const now=new Date(),m=moonInfo(now);
+  document.getElementById("celestial").innerHTML=
+    "<span>"+m.icon+" <b>"+m.name+"</b>（月龄 "+m.age+" 天）</span>"+
+    "<span>🕰 <b>"+shichen(now)+"</b></span>"+
+    "<span>📅 "+now.getFullYear()+"."+(now.getMonth()+1)+"."+now.getDate()+"</span>";
+})();
+
+/* ========== 熵池：鼠标轨迹 + 时间抖动 ========== */
+const entropy={pool:[],target:140,full:false};
+function feedEntropy(v){
+  entropy.pool.push((v>>>0)^(performance.now()*1000&0xFFFFFFFF));
+  if(!entropy.full){
+    const pct=Math.min(entropy.pool.length/entropy.target,1)*100;
+    document.getElementById("entropy-fill").style.width=pct+"%";
+    if(pct>=100){
+      entropy.full=true;
+      document.getElementById("entropy-zone").classList.add("full");
+      document.getElementById("entropy-label").textContent="✦ 随机之力已注满 —— 现在按住下方按钮凝神";
+      document.getElementById("deck-visual").classList.remove("shuffling");
+      document.getElementById("draw-btn").disabled=false;
+    }
+  }
+}
+function fnv1a(arr){
+  let h=0x811c9dc5;
+  for(const v of arr){
+    h^=v&0xFF;h=Math.imul(h,0x01000193);
+    h^=(v>>>8)&0xFF;h=Math.imul(h,0x01000193);
+    h^=(v>>>16)&0xFF;h=Math.imul(h,0x01000193);
+    h^=(v>>>24)&0xFF;h=Math.imul(h,0x01000193);
+  }
+  return h>>>0;
+}
+
+/* ========== 洗牌：硬件真随机 × 熵池 ========== */
+function secureInt(n){
+  const max=Math.floor(0x100000000/n)*n;
+  const buf=new Uint32Array(1);
+  do{crypto.getRandomValues(buf);}while(buf[0]>=max);
+  return buf[0]%n;
+}
+function drawCards(count){
+  let deck=CARDS.map((_,i)=>i);
+  for(let pass=0;pass<7;pass++){
+    for(let i=deck.length-1;i>0;i--){
+      const j=secureInt(i+1);
+      [deck[i],deck[j]]=[deck[j],deck[i]];
+    }
+  }
+  // 切牌：由占卜者的鼠标轨迹熵 + 问题文字 + 松手瞬间共同决定
+  // 封印语：雷诺曼女士 1821 年著作《Cri de l'honneur》，牌灵长眠于拉雪兹神父公墓第 3 墓区
+  const SIGIL=[..."Cri de l'honneur · Mlle Marie-Anne Lenormand · 1772-1843 · Père-Lachaise Division 3"].map(c=>c.codePointAt(0));
+  const q=document.getElementById("question").value;
+  const qCodes=[...q].map(c=>c.codePointAt(0));
+  const cut=fnv1a(SIGIL.concat(entropy.pool,qCodes,[Date.now()&0xFFFFFFFF]))%36;
+  deck=deck.slice(cut).concat(deck.slice(0,cut));
+  return{cards:deck.slice(0,count).map(i=>CARDS[i]),cut:cut,samples:entropy.pool.length};
+}
+
+/* ========== 流程控制 ========== */
+let selectedSpread=null,result=null,holdStart=0,holdTimer=null;
+
+// 牌阵选项
+(function buildSpreads(){
+  const grid=document.getElementById("spread-grid");
+  for(const key in SPREADS){
+    const s=SPREADS[key];
+    const div=document.createElement("div");
+    div.className="spread-opt";
+    div.innerHTML="<div class='s-name'>"+s.name+"</div><div class='s-glyph'>"+decodeURIComponent(s.glyph).replace(/\n/g,"<br>")+"</div><div class='s-desc'>"+s.desc+"</div>";
+    div.addEventListener("click",()=>{
+      document.querySelectorAll(".spread-opt").forEach(e=>e.classList.remove("selected"));
+      div.classList.add("selected");
+      selectedSpread=key;
+      const ritual=document.getElementById("panel-ritual");
+      ritual.classList.remove("locked");
+      document.getElementById("deck-visual").classList.add("shuffling");
+      ritual.scrollIntoView({behavior:"smooth",block:"center"});
+    });
+    grid.appendChild(div);
+  }
+})();
+
+// 熵收集
+document.getElementById("entropy-zone").addEventListener("mousemove",e=>{
+  if(!selectedSpread)return;
+  feedEntropy(e.clientX*7919+e.clientY*104729+e.movementX*31+e.movementY*37);
+});
+document.getElementById("entropy-zone").addEventListener("touchmove",e=>{
+  if(!selectedSpread)return;
+  const t=e.touches[0];
+  feedEntropy((t.clientX*7919+t.clientY*104729)|0);
+},{passive:true});
+
+// 按住凝神抽牌（≥1.5秒）
+const drawBtn=document.getElementById("draw-btn");
+const HOLD_MS=1500;
+function holdBegin(e){
+  if(drawBtn.disabled)return;
+  e.preventDefault();
+  holdStart=performance.now();
+  drawBtn.classList.add("holding");
+  holdTimer=setInterval(()=>{
+    const pct=Math.min((performance.now()-holdStart)/HOLD_MS,1)*100;
+    document.getElementById("hold-fill").style.width=pct+"%";
+  },40);
+}
+function holdEnd(){
+  if(!holdStart)return;
+  const held=performance.now()-holdStart;
+  clearInterval(holdTimer);
+  drawBtn.classList.remove("holding");
+  document.getElementById("hold-fill").style.width="0%";
+  feedEntropy((held*100000)|0);   // 松手瞬间的微秒也入熵池
+  holdStart=0;
+  if(held>=HOLD_MS){reveal();}
+  else{
+    const label=document.getElementById("entropy-label");
+    label.textContent="心还未静 —— 请按住更久一些，默念完问题再松手";
+  }
+}
+drawBtn.addEventListener("pointerdown",holdBegin);
+drawBtn.addEventListener("pointerup",holdEnd);
+drawBtn.addEventListener("pointerleave",holdEnd);
+
+/* ========== 开牌 ========== */
+function reveal(){
+  const spread=SPREADS[selectedSpread];
+  result=drawCards(spread.n);
+  const area=document.getElementById("cards-area");
+  area.className="cards-area n"+spread.n;
+  area.innerHTML="";
+  result.cards.forEach((c,i)=>{
+    const slot=document.createElement("div");
+    slot.className="cardslot";
+    const isRed=c[4][0]==="♥"||c[4][0]==="♦";
+    slot.innerHTML=
+      "<div class='pos-label'>"+spread.pos[i]+"</div>"+
+      "<div class='card'>"+
+        "<div class='card-face card-back'>✦</div>"+
+        "<div class='card-face card-front'>"+
+          "<div class='c-num'>No."+c[0]+"</div>"+
+          "<div class='c-emoji'>"+c[3]+"</div>"+
+          "<div class='c-name'>"+c[1]+"</div>"+
+          "<div class='c-en'>"+c[2]+"</div>"+
+          "<div class='c-poker'><span class='"+(isRed?"red":"")+"'>"+c[4]+"</span></div>"+
+        "</div>"+
+      "</div>";
+    area.appendChild(slot);
+    setTimeout(()=>slot.querySelector(".card").classList.add("flipped"),400+i*350);
+  });
+  const now=new Date(),m=moonInfo(now);
+  document.getElementById("ritual-report").innerHTML=
+    "本次仪式 · 硬件真随机源七次洗牌 ｜ 熵池样本 "+result.samples+" 组（含你的手迹与松手一瞬） ｜ 切牌位 第 "+(result.cut+1)+" 张 ｜ "+m.icon+" "+m.name+" · "+shichen(now);
+  buildPrompt(spread,now,m);
+  const p=n=>String(n).padStart(2,"0");
+  const stamp=now.getFullYear()+"-"+p(now.getMonth()+1)+"-"+p(now.getDate())+"_"+p(now.getHours())+p(now.getMinutes())+p(now.getSeconds());
+  const snippet=(document.getElementById("question").value.trim()||"未写问题").replace(/[\\/:*?"<>|\s]+/g,"").slice(0,14);
+  saveArchive({filename:stamp+"_"+snippet+".txt",content:document.getElementById("prompt-box").textContent+"\n"});
+  const panel=document.getElementById("panel-result");
+  panel.style.display="";
+  panel.scrollIntoView({behavior:"smooth",block:"start"});
+  document.getElementById("panel-ritual").classList.add("locked");
+}
+
+/* ========== 生成给 AI 的占卜全文 ========== */
+function buildPrompt(spread,now,m){
+  const q=document.getElementById("question").value.trim()||"（占卜者未写明，请按整体近况解读）";
+  const circled=["①","②","③","④","⑤","⑥","⑦","⑧","⑨"];
+  let lines=result.cards.map((c,i)=>
+    circled[i]+" "+spread.pos[i]+"：No."+c[0]+" "+c[1]+" "+c[2]+"（扑克映射 "+c[4]+"）— 牌性："+c[6]+" — 传统牌意：「"+c[5]+"」"
+  ).join("\n");
+  const text=
+"【雷诺曼占卜解读请求】\n\n"+
+"请你作为一位经验丰富的雷诺曼（Lenormand）占卜师，为我解读以下真实抽出的牌阵。\n\n"+
+"── 占卜信息 ──\n"+
+"问题："+q+"\n"+
+"占卜时间："+timeString(now)+"\n"+
+"当日月相："+m.icon+" "+m.name+"（月龄 "+m.age+" 天，光照 "+m.illum+"%）\n"+
+"洗牌仪式：硬件真随机数发生器七次洗牌，混入占卜者本人的鼠标轨迹熵（"+result.samples+" 组样本）与凝神松手瞬间的微秒时刻，并以雷诺曼女士（Mlle Lenormand，1772–1843，长眠于拉雪兹神父公墓）1821 年遗作《Cri de l'honneur》为封印语织入切牌，切于第 "+(result.cut+1)+" 位。牌是真实随机抽出的，请认真对待。\n\n"+
+"── 牌阵："+spread.name+" ──\n"+
+lines+"\n\n"+
+"── 解读要求 ──\n"+
+"1. "+spread.guide+"\n"+
+"2. 请用雷诺曼的方式解读，而不是塔罗的方式：雷诺曼的牌意具体、直白、贴近日常，组合起来像「名词＋形容词」造句；请以牌与牌的组合为单位解读，不要逐张孤立地堆砌牌意。\n"+
+"3. 紧扣我的问题来解读，所有牌意都要落到问题的具体情境上，不要泛泛而谈。\n"+
+"4. 【是非题铁律】若我的问题本质上是「是/否」判断题：必须先用雷诺曼经典的牌性多数决定出答案——数吉牌与凶牌（每张牌性已标注），吉多为「是」，凶多为「否」，「中」性牌不计票、只看其相邻组合的倾向，核心位置的牌权重加倍；先亮出是/否，再用组合叙事解释为什么。联想式的故事不得推翻多数决。\n"+
+"5. 结尾请给出明确的结论：是或否、吉或凶、大致的时间感、以及一条最重要的行动建议。雷诺曼从不含糊其辞。\n"+
+"6. 如果牌面提示了需要注意的人或风险，请直说。";
+  document.getElementById("prompt-box").textContent=text;
+}
+
+/* ========== 自动保存：记录存于你自己的浏览器，可随时导出，不上传任何数据 ========== */
+const HISTORY_KEY="lenormand_history";
+let lastArchive=null;
+function historyList(){
+  try{return JSON.parse(localStorage.getItem(HISTORY_KEY))||[];}catch(e){return [];}
+}
+function saveArchive(rec){
+  lastArchive=rec;
+  const list=historyList();
+  list.push(rec);
+  localStorage.setItem(HISTORY_KEY,JSON.stringify(list.slice(-200)));
+  const el=document.getElementById("save-status");
+  el.style.color="var(--gold)";
+  el.textContent="✦ 本次占卜已自动保存在此浏览器 · 累计 "+list.length+" 次（清除浏览器数据会丢失，重要的请下载 txt）";
+}
+function downloadTxt(filename,content){
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(new Blob([content],{type:"text/plain;charset=utf-8"}));
+  a.download=filename;
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+document.getElementById("dl-btn").addEventListener("click",()=>{
+  if(lastArchive)downloadTxt(lastArchive.filename,lastArchive.content);
+});
+document.getElementById("export-all").addEventListener("click",e=>{
+  e.preventDefault();
+  const list=historyList();
+  if(!list.length){alert("还没有占卜记录");return;}
+  downloadTxt("雷诺曼占卜历史_共"+list.length+"次.txt",list.map(r=>r.content).join("\n\n"+"=".repeat(40)+"\n\n"));
+});
+
+/* ========== 复制 & 重占 ========== */
+document.getElementById("copy-btn").addEventListener("click",async()=>{
+  const text=document.getElementById("prompt-box").textContent;
+  let ok=false;
+  try{await navigator.clipboard.writeText(text);ok=true;}
+  catch(e){
+    const ta=document.createElement("textarea");
+    ta.value=text;document.body.appendChild(ta);ta.select();
+    try{ok=document.execCommand("copy");}catch(e2){}
+    ta.remove();
+  }
+  const tip=document.getElementById("copy-ok");
+  tip.textContent=ok?"✦ 已复制，去粘贴给 AI 吧":"复制失败，请手动全选下方文字";
+  tip.classList.add("show");
+  setTimeout(()=>tip.classList.remove("show"),2600);
+});
+
+document.getElementById("reset-btn").addEventListener("click",()=>{
+  result=null;
+  entropy.pool.length=0;entropy.full=false;
+  document.getElementById("entropy-fill").style.width="0%";
+  document.getElementById("entropy-zone").classList.remove("full");
+  document.getElementById("entropy-label").textContent="在此区域内缓慢画圈移动鼠标 —— 你的手迹将成为洗牌的随机之源";
+  document.getElementById("draw-btn").disabled=true;
+  document.getElementById("panel-result").style.display="none";
+  const ritual=document.getElementById("panel-ritual");
+  if(selectedSpread){
+    ritual.classList.remove("locked");
+    document.getElementById("deck-visual").classList.add("shuffling");
+  }
+  document.getElementById("panel-question").scrollIntoView({behavior:"smooth"});
+});
+</script>
+</body>
+</html>
