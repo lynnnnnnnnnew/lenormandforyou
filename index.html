@@ -225,7 +225,7 @@
       <div class="star-field" id="star-field"></div>
       <div class="entropy-bar"><div class="entropy-fill" id="entropy-fill"></div></div>
     </div>
-    <p class="hint" style="text-align:center">七星点齐后，<b style="color:var(--gold)">按住</b>下方按钮闭眼凝神默念问题，感觉到了再松手 —— 松手的一瞬即是切牌的一瞬。</p>
+    <p class="hint" style="text-align:center">七星点齐后，先在心中默念问题，然后<b style="color:var(--gold)">按住</b>下方按钮、随即松手 —— 松手的一瞬即是切牌的一瞬。</p>
     <div class="btn-row">
       <button class="btn" id="draw-btn" disabled>凝 神 抽 牌</button>
       <div class="hold-progress"><div class="hold-fill" id="hold-fill"></div></div>
@@ -260,7 +260,7 @@
   </section>
 
   <div class="notice">
-    隐私公告 · 本页不收集任何个人信息，仅作无 cookie 的匿名访问计数。你的问题与抽牌记录只保存在你自己设备的浏览器中，不会上传到任何服务器，可随时<a href="#" id="export-all" style="color:var(--gold-dim)">导出全部占卜历史</a>。
+    隐私公告 · 本页不收集任何个人信息，仅作无 cookie 的匿名访问计数。你的问题与抽牌记录只保存在你自己设备的浏览器中，不会上传到任何服务器。
   </div>
   <footer>
     心诚则灵 · 同一问题一日只问一次<br>
@@ -315,10 +315,10 @@ const SPREADS={
     pos:["核心答案"],
     guide:"这是单张牌占卜：请围绕这张牌的核心意涵，结合问题语境给出直接明确的回答，并说明它落在此问题上的具体指向。"},
   three:{n:3,name:"三张牌阵",glyph:"▪ ▪ ▪",desc:"经典短阵：脉络、核心、走向",
-    pos:["位置一 · 缘起/背景","位置二 · 核心/现状","位置三 · 走向/结果"],
+    pos:["缘起 · 背景","核心 · 现状","走向 · 结果"],
     guide:"这是三张线性牌阵：中间牌为核心主题，左牌为背景与来由，右牌为发展与结局。请先两两组合（1+2、2+3）解读，再把三张牌从左到右连读成一句完整的话，最后给出结论。"},
   five:{n:5,name:"五张牌阵",glyph:"▪ ▪ ▪ ▪ ▪",desc:"一条完整的叙事线，细看因果",
-    pos:["位置一 · 远因","位置二 · 近因","位置三 · 核心","位置四 · 近期发展","位置五 · 最终走向"],
+    pos:["远因","近因","核心","近期发展","最终走向"],
     guide:"这是五张线性牌阵：正中第三张为核心主题牌，左侧两张为远因与近因，右侧两张为近期发展与最终走向。请以核心牌为轴，相邻牌两两组合逐步推进解读，再整体连读成一段完整叙事，最后给出结论与时间感。"},
   nine:{n:9,name:"九宫格",glyph:"▪▪▪%0A▪▪▪%0A▪▪▪",desc:"3×3 全景深读，大事用它",
     pos:["左上","上中","右上","左中","中心 · 主题牌","右中","左下","下中","右下"],
@@ -406,7 +406,7 @@ const lineEls=[];
       }else{
         entropy.full=true;
         document.getElementById("entropy-zone").classList.add("full");
-        document.getElementById("entropy-label").textContent="✦ 七星已聚 —— 现在按住下方按钮凝神默念";
+        document.getElementById("entropy-label").textContent="✦ 七星已聚 —— 默念问题后，按住下方按钮抽牌";
         document.getElementById("deck-visual").classList.remove("shuffling");
         document.getElementById("draw-btn").disabled=false;
       }
@@ -468,7 +468,7 @@ let selectedSpread=null,result=null,holdStart=0,holdTimer=null;
       const ritual=document.getElementById("panel-ritual");
       ritual.classList.remove("locked");
       document.getElementById("deck-visual").classList.add("shuffling");
-      ritual.scrollIntoView({behavior:"smooth",block:"center"});
+      document.getElementById("entropy-zone").scrollIntoView({behavior:"smooth",block:"center"});
     });
     grid.appendChild(div);
   }
@@ -476,7 +476,7 @@ let selectedSpread=null,result=null,holdStart=0,holdTimer=null;
 
 // 按住凝神抽牌（≥1.5秒）
 const drawBtn=document.getElementById("draw-btn");
-const HOLD_MS=1500;
+const HOLD_MS=800;
 function holdBegin(e){
   if(drawBtn.disabled)return;
   e.preventDefault();
@@ -498,7 +498,7 @@ function holdEnd(){
   if(held>=HOLD_MS){reveal();}
   else{
     const label=document.getElementById("entropy-label");
-    label.textContent="心还未静 —— 请按住更久一些，默念完问题再松手";
+    label.textContent="太快了 —— 请按住约一秒再松手";
   }
 }
 drawBtn.addEventListener("pointerdown",holdBegin);
@@ -564,7 +564,7 @@ function buildPrompt(spread,now,m){
 lines+"\n\n"+
 "── 解读要求 ──\n"+
 "1. "+spread.guide+"\n"+
-"2. 请用雷诺曼的方式解读，而不是塔罗的方式：雷诺曼的牌意具体、直白、贴近日常，组合起来像「名词＋形容词」造句；请以牌与牌的组合为单位解读，不要逐张孤立地堆砌牌意。\n"+
+"2. 雷诺曼的牌意具体、直白、贴近日常，组合起来像「名词＋形容词」造句；请以牌与牌的组合为单位解读，不要逐张孤立地堆砌牌意。\n"+
 "3. 紧扣我的问题来解读，所有牌意都要落到问题的具体情境上，不要泛泛而谈。\n"+
 "4. 【是非题铁律】若我的问题本质上是「是/否」判断题：必须先用雷诺曼经典的牌性多数决定出答案——数吉牌与凶牌（每张牌性已标注），吉多为「是」，凶多为「否」，「中」性牌不计票、只看其相邻组合的倾向，核心位置的牌权重加倍；先亮出是/否，再用组合叙事解释为什么。联想式的故事不得推翻多数决。\n"+
 "5. 结尾请给出明确的结论：是或否、吉或凶、大致的时间感、以及一条最重要的行动建议。雷诺曼从不含糊其辞。\n"+
@@ -596,12 +596,6 @@ document.getElementById("dl-btn").addEventListener("click",e=>{
   e.preventDefault();
   if(lastArchive)downloadTxt(lastArchive.filename,lastArchive.content);
 });
-document.getElementById("export-all").addEventListener("click",e=>{
-  e.preventDefault();
-  const list=historyList();
-  if(!list.length){alert("还没有占卜记录");return;}
-  downloadTxt("雷诺曼占卜历史_共"+list.length+"次.txt",list.map(r=>r.content).join("\n\n"+"=".repeat(40)+"\n\n"));
-});
 
 /* ========== 复制 & 重占 ========== */
 document.getElementById("copy-btn").addEventListener("click",async()=>{
@@ -610,7 +604,11 @@ document.getElementById("copy-btn").addEventListener("click",async()=>{
   try{await navigator.clipboard.writeText(text);ok=true;}
   catch(e){
     const ta=document.createElement("textarea");
-    ta.value=text;document.body.appendChild(ta);ta.select();
+    ta.value=text;
+    ta.setAttribute("readonly","");
+    ta.style.cssText="position:fixed;top:0;left:0;opacity:0;font-size:16px;";
+    document.body.appendChild(ta);
+    ta.focus();ta.setSelectionRange(0,ta.value.length);
     try{ok=document.execCommand("copy");}catch(e2){}
     ta.remove();
   }
